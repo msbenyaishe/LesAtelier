@@ -103,3 +103,36 @@ audio {
     width: 100%;
     margin-top: 10px;
 }
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin: 25px 0;
+    flex-wrap: wrap;
+}
+
+.pagBtn, .pageNum {
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.2);
+    padding: 8px 14px;
+    border-radius: 8px;
+    color: white;
+    cursor: pointer;
+    transition: 0.25s;
+}
+
+.pageNum.active {
+    background: #3b82f6;
+    border-color: #3b82f6;
+}
+
+.pagBtn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.pagBtn:hover:not(:disabled),
+.pageNum:hover {
+    background: rgba(255,255,255,0.25);
+}

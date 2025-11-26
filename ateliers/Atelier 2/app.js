@@ -5,15 +5,19 @@ const sortBtn = document.getElementById("sortBtn");
 const randomBtn = document.getElementById("randomBtn");
 const highlight = document.getElementById("highlight");
 
+// Pagination elements
+let currentPage = 1;
+const perPage = 12; // how many surahs per page
+let filteredSurahs = []; // used after search
+
 let allSurahs = [];
 
-// --- Fetch Qur'an Surahs From API ---
+// ---------------- LOAD SURAH DATA ----------------
 async function loadSurahs() {
     const res = await fetch("https://api.quran.com/api/v4/chapters");
     const data = await res.json();
     const surahList = data.chapters;
 
-    // Each surah also needs audio → we get a common reciter ID
     const reciterId = 7; // Mishary Al-Afasy
 
     const audioRes = await fetch(
@@ -22,7 +26,6 @@ async function loadSurahs() {
     const audioData = await audioRes.json();
     const audioList = audioData.audio_files;
 
-    // Format objects
     allSurahs = surahList.map(item => {
         const audioObj = audioList.find(a => a.chapter_id === item.id);
 
@@ -35,13 +38,21 @@ async function loadSurahs() {
         };
     });
 
-    renderSurahs(allSurahs);
+    filteredSurahs = allSurahs;
+    renderPagination();
+    renderSurahs();
 }
 
-// --- Render Cards ---
-function renderSurahs(list) {
+// ---------------- RENDER SURAH CARDS WITH PAGINATION ----------------
+function renderSurahs() {
+    const start = (currentPage - 1) * perPage;
+    const end = start + perPage;
+
+    const list = filteredSurahs.slice(start, end);
+
     surahsContainer.innerHTML = list
-        .map(surah => `
+        .map(
+            surah => `
             <div class="surah-card">
                 <h3>${surah.id}. ${surah.name}</h3>
                 <p>${surah.arabic}</p>
@@ -52,29 +63,81 @@ function renderSurahs(list) {
                         : `<p>No audio available</p>`
                 }
             </div>
-        `)
+        `
+        )
         .join("");
 
-    surahCountEl.innerHTML = `Number of Surahs: <b>${list.length}</b>`;
+    surahCountEl.innerHTML = `Surahs: <b>${filteredSurahs.length}</b>`;
 }
 
-// --- Search ---
+// ---------------- PAGINATION UI ----------------
+function renderPagination() {
+    const totalPages = Math.ceil(filteredSurahs.length / perPage);
+
+    let html = `<div class="pagination">`;
+
+    // Prev button
+    html += `<button class="pagBtn" ${currentPage === 1 ? "disabled" : ""} onclick="prevPage()">Prev</button>`;
+
+    // Page numbers
+    for (let i = 1; i <= totalPages; i++) {
+        html += `
+            <button class="pageNum ${i === currentPage ? "active" : ""}" onclick="setPage(${i})">
+                ${i}
+            </button>
+        `;
+    }
+
+    // Next button
+    html += `<button class="pagBtn" ${currentPage === totalPages ? "disabled" : ""} onclick="nextPage()">Next</button>`;
+
+    html += `</div>`;
+
+    highlight.innerHTML = html;
+}
+
+function setPage(num) {
+    currentPage = num;
+    renderSurahs();
+    renderPagination();
+}
+
+function nextPage() {
+    const totalPages = Math.ceil(filteredSurahs.length / perPage);
+    if (currentPage < totalPages) currentPage++;
+    renderSurahs();
+    renderPagination();
+}
+
+function prevPage() {
+    if (currentPage > 1) currentPage--;
+    renderSurahs();
+    renderPagination();
+}
+
+// ---------------- SEARCH ----------------
 searchInput.addEventListener("input", () => {
     const term = searchInput.value.toLowerCase();
-    const filtered = allSurahs.filter(s =>
+
+    filteredSurahs = allSurahs.filter(s =>
         s.name.toLowerCase().includes(term) ||
         s.arabic.includes(term)
     );
-    renderSurahs(filtered);
+
+    currentPage = 1; // reset to page 1 when searching
+    renderPagination();
+    renderSurahs();
 });
 
-// --- Sort by Number ---
+// ---------------- SORT ----------------
 sortBtn.addEventListener("click", () => {
-    const sorted = [...allSurahs].sort((a, b) => a.id - b.id);
-    renderSurahs(sorted);
+    filteredSurahs = [...filteredSurahs].sort((a, b) => a.id - b.id);
+    currentPage = 1;
+    renderPagination();
+    renderSurahs();
 });
 
-// --- Random Surah Highlight ---
+// ---------------- RANDOM SURAH HIGHLIGHT ----------------
 randomBtn.addEventListener("click", () => {
     const index = Math.floor(Math.random() * allSurahs.length);
     const s = allSurahs[index];
@@ -93,5 +156,5 @@ randomBtn.addEventListener("click", () => {
     `;
 });
 
-// Load data on startup
+// ---------------- INIT ----------------
 loadSurahs();
